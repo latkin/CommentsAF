@@ -1,10 +1,12 @@
-#if !COMPILED
+﻿#if VS
+module CommentsAF
+#else
 #load "./prelude.fsx"
-#endif
 
 #r "System.Net.Http"
 #r "Newtonsoft.Json"
 #r "Microsoft.WindowsAzure.Storage"
+#endif
 
 open System
 open System.Collections.Generic
@@ -20,10 +22,11 @@ type Settings =
     { StorageConnectionString : string
       TableName : string } with
     
-    static member load () = {
-        StorageConnectionString = Environment.GetEnvironmentVariable("APPSETTING_comments_connectionstring", EnvironmentVariableTarget.Process)
-        TableName = Environment.GetEnvironmentVariable("APPSETTING_comments_tablename", EnvironmentVariableTarget.Process)
-    }
+    static member load () = 
+        { StorageConnectionString =
+            Environment.GetEnvironmentVariable("APPSETTING_comments_connectionstring", EnvironmentVariableTarget.Process)
+          TableName =
+            Environment.GetEnvironmentVariable("APPSETTING_comments_tablename", EnvironmentVariableTarget.Process) }
 
 type CommentRow() =
     inherit TableEntity()
@@ -39,14 +42,14 @@ type Comment =
         { time = row.Timestamp
           name = row.Name
           comment = row.Comment }
- 
+
 let Run(req: HttpRequestMessage, log: TraceWriter) =
     async {
-        log.Info(sprintf "F# HTTP trigger function processed a request.")
+    try
         let postId =
             req.GetQueryNameValuePairs()
             |> Seq.tryFind (fun q -> q.Key = "postid")
-
+    
         match postId with
         | None -> return req.CreateErrorResponse(HttpStatusCode.BadRequest, "postid parameter required")
         | Some(postId) ->
@@ -59,10 +62,14 @@ let Run(req: HttpRequestMessage, log: TraceWriter) =
             let q =
                 TableQuery<CommentRow>()
                     .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, postKey))
-
+    
             let rows = table.ExecuteQuery(q) |> Seq.map Comment.fromRow
             let resp = req.CreateResponse(HttpStatusCode.OK)
             resp.Content <- new StringContent(JsonConvert.SerializeObject(rows.ToArray()))
-
+    
             return resp
+    with
+    | exn ->
+        log.Error("Unknown error getting comments", exn)
+        return req.CreateErrorResponse(HttpStatusCode.InternalServerError, "Unknown error")
     } |> Async.RunSynchronously
