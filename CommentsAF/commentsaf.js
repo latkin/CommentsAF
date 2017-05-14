@@ -26,6 +26,10 @@ function LoadCommentSubmission() {
 
     $("#caf-submit-postcomment").click(function (e) {
         e.preventDefault();
+        $("#caf-submit-name").prop("disabled", true);
+        $("#caf-submit-comment").prop("disabled", true);
+        $("#caf-submit-postcomment").prop("disabled", true);
+
         AddComment(commentsaf_postid, $("#caf-submit-name").val(), $("#caf-submit-comment").val());
     });
 }
@@ -68,8 +72,16 @@ function AddComment(postId, name, comment) {
             AddSingleComment(data);
             $("#caf-submit-name").val("");
             $("#caf-submit-comment").val("");
+            $("#caf-submit-name").prop("disabled", false);
+            $("#caf-submit-comment").prop("disabled", false);
+            $("#caf-submit-postcomment").prop("disabled", false);
         },
-        error: function () { $("#caf-commentlist").append("Error adding comment"); },
+        error: function () {
+            $("#caf-commentlist").append("Error adding comment");
+            $("#caf-submit-name").prop("disabled", false);
+            $("#caf-submit-comment").prop("disabled", false);
+            $("#caf-submit-postcomment").prop("disabled", false);
+        },
         dataType: "json"
     });
 }
