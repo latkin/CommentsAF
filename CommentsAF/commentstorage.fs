@@ -9,6 +9,11 @@ type Comment =
       name : string
       comment : string }
 
+type NewComment =
+    { postid: string
+      name : string
+      comment : string }
+
 module CommentStorage =
     type StorageSettings =
         { StorageConnectionString : string
@@ -41,5 +46,15 @@ module CommentStorage =
             let q =
                 TableQuery<CommentRow>()
                     .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, postKey))
+            table.ExecuteQuery(q)
+            |> Seq.map commentFromRow
+            |> Array.ofSeq
+            |> Array.sortBy (fun c -> c.time)
 
-            table.ExecuteQuery(q) |> Seq.map commentFromRow |> Array.ofSeq
+        member __.AddCommentForPost(comment: NewComment) =
+            let commentRow = CommentRow(PartitionKey = (sprintf "post-%s" comment.postid),
+                                        RowKey = Guid.NewGuid().ToString(),
+                                        Name = comment.name,
+                                        Comment = comment.comment)
+            let result = table.Execute(TableOperation.Insert(commentRow))
+            (result.Result :?> CommentRow) |> commentFromRow

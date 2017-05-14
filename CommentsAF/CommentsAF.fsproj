@@ -50,11 +50,11 @@
   </Choose>
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
-    <None Include="prelude.fsx" />
-    <Compile Include="main.fsx" />
+    <Compile Include="commentstorage.fs" />
+    <Compile Include="run.fsx" />
     <Content Include="packages.config" />
-    <None Include="testpage.html" />
-    <Content Include="comments.js" />
+    <None Include="commentsaf.html" />
+    <Content Include="commentsaf.js" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Azure.KeyVault.Core">
