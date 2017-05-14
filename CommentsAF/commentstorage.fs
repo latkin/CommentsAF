@@ -4,12 +4,20 @@ open System
 open Microsoft.WindowsAzure.Storage
 open Microsoft.WindowsAzure.Storage.Table
 
+/// final form of a comment, as read out of table storage
 type Comment =
     { time : DateTimeOffset
       name : string
       comment : string }
 
-type NewComment =
+/// unsanitized comment as it arrives from the user
+type UserComment =
+    { postid: string
+      name : string
+      comment : string }
+
+/// sanitized comment ready for storage
+type PendingComment = 
     { postid: string
       name : string
       comment : string }
@@ -51,7 +59,7 @@ module CommentStorage =
             |> Array.ofSeq
             |> Array.sortBy (fun c -> c.time)
 
-        member __.AddCommentForPost(comment: NewComment) =
+        member __.AddCommentForPost(comment: PendingComment) =
             let commentRow = CommentRow(PartitionKey = (sprintf "post-%s" comment.postid),
                                         RowKey = Guid.NewGuid().ToString(),
                                         Name = comment.name,

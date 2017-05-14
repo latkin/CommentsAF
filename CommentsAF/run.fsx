@@ -5,6 +5,7 @@ module run
 #r "Newtonsoft.Json"
 #r "Microsoft.WindowsAzure.Storage"
 #load "commentstorage.fs"
+#load "processing.fs"
 #endif
 
 open System
@@ -29,7 +30,7 @@ let (|GetComments|AddComment|Error|) (req: HttpRequestMessage) =
         AddComment(async {
             let! content = req.Content.ReadAsStringAsync() |> Async.AwaitTask
             try
-                let newComment = JsonConvert.DeserializeObject<NewComment>(content)
+                let newComment = JsonConvert.DeserializeObject<UserComment>(content)
                 if String.IsNullOrWhiteSpace(newComment.comment) ||
                    String.IsNullOrWhiteSpace(newComment.name) ||
                    String.IsNullOrWhiteSpace(newComment.postid) then
@@ -62,7 +63,10 @@ let Run(req: HttpRequestMessage, log: TraceWriter) =
             | Some(newComment) ->
                 log.Info(sprintf "Request to add comment for post %s" newComment.postid)
                 let storage = CommentStorage(StorageSettings.load())
-                let finalComment = storage.AddCommentForPost(newComment)
+                let finalComment =
+                    newComment
+                    |> Processing.userCommentToPending
+                    |> storage.AddCommentForPost
 
                 log.Info(sprintf "Successfully added new comment to post %s" newComment.postid)
 
