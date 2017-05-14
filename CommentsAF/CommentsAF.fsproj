@@ -119,6 +119,7 @@
     <Reference Include="System.Net.Http.Primitives">
       <HintPath>..\packages\System.Net.Http.Formatting.Extension.5.2.3.0\lib\System.Net.Http.Primitives.dll</HintPath>
     </Reference>
+    <Reference Include="System.Web" />
     <Reference Include="System.Web.Http">
       <HintPath>..\packages\System.Web.Http.4.0.0\System.Web.Http.dll</HintPath>
     </Reference>

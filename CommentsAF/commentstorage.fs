@@ -14,7 +14,8 @@ type Comment =
 type UserComment =
     { postid: string
       name : string
-      comment : string }
+      comment : string
+      captcha : string }
 
 /// sanitized comment ready for storage
 type PendingComment = 
@@ -22,17 +23,20 @@ type PendingComment =
       name : string
       comment : string }
 
+type Settings =
+    { StorageConnectionString : string
+      TableName : string
+      ReCaptchaSecret : string } with
+
+    static member load () = 
+        { StorageConnectionString =
+            Environment.GetEnvironmentVariable("APPSETTING_comments_connectionstring", EnvironmentVariableTarget.Process)
+          TableName =
+            Environment.GetEnvironmentVariable("APPSETTING_comments_tablename", EnvironmentVariableTarget.Process)
+          ReCaptchaSecret =
+            Environment.GetEnvironmentVariable("APPSETTING_comments_recaptchasecret", EnvironmentVariableTarget.Process) }
+
 module CommentStorage =
-    type StorageSettings =
-        { StorageConnectionString : string
-          TableName : string } with
-
-        static member load () = 
-            { StorageConnectionString =
-                Environment.GetEnvironmentVariable("APPSETTING_comments_connectionstring", EnvironmentVariableTarget.Process)
-              TableName =
-                Environment.GetEnvironmentVariable("APPSETTING_comments_tablename", EnvironmentVariableTarget.Process) }
-
     type CommentRow() =
         inherit TableEntity()
         member val Name = "" with get,set

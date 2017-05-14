@@ -4,6 +4,7 @@ module run
 #r "System.Net.Http"
 #r "Newtonsoft.Json"
 #r "Microsoft.WindowsAzure.Storage"
+#r "System.Web"
 #load "commentstorage.fs"
 #load "processing.fs"
 #endif
@@ -33,7 +34,8 @@ let (|GetComments|AddComment|Error|) (req: HttpRequestMessage) =
                 let newComment = JsonConvert.DeserializeObject<UserComment>(content)
                 if String.IsNullOrWhiteSpace(newComment.comment) ||
                    String.IsNullOrWhiteSpace(newComment.name) ||
-                   String.IsNullOrWhiteSpace(newComment.postid) then
+                   String.IsNullOrWhiteSpace(newComment.postid) ||
+                   String.IsNullOrWhiteSpace(newComment.captcha) then
                     return None
                 else
                     return Some(newComment)
@@ -49,7 +51,7 @@ let Run(req: HttpRequestMessage, log: TraceWriter) =
         | GetComments(postId) ->
             log.Info(sprintf "Request to get comments for post %s" postId)
 
-            let storage = CommentStorage(StorageSettings.load())
+            let storage = CommentStorage(Settings.load())
             let comments = storage.GetCommentsForPost(postId)
 
             log.Info(sprintf "Loaded %d comments for post %s" comments.Length postId)
@@ -62,11 +64,11 @@ let Run(req: HttpRequestMessage, log: TraceWriter) =
             match newCommentOpt with
             | Some(newComment) ->
                 log.Info(sprintf "Request to add comment for post %s" newComment.postid)
-                let storage = CommentStorage(StorageSettings.load())
-                let finalComment =
-                    newComment
-                    |> Processing.userCommentToPending log
-                    |> storage.AddCommentForPost
+                let settings = Settings.load()
+                let! tmp = newComment |> Processing.userCommentToPending log req settings
+
+                let storage = CommentStorage(settings)
+                let finalComment = tmp |> storage.AddCommentForPost
 
                 log.Info(sprintf "Successfully added new comment to post %s" newComment.postid)
 
