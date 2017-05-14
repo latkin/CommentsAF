@@ -1,4 +1,4 @@
-﻿namespace CommentsAF
+namespace CommentsAF
 
 open System
 open Ganss.XSS

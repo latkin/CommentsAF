@@ -1,4 +1,4 @@
-﻿#if VS
+#if VS
 module run
 #else
 #r "System.Net.Http"
