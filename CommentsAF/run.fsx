@@ -65,7 +65,7 @@ let Run(req: HttpRequestMessage, log: TraceWriter) =
                 let storage = CommentStorage(StorageSettings.load())
                 let finalComment =
                     newComment
-                    |> Processing.userCommentToPending
+                    |> Processing.userCommentToPending log
                     |> storage.AddCommentForPost
 
                 log.Info(sprintf "Successfully added new comment to post %s" newComment.postid)
@@ -80,6 +80,9 @@ let Run(req: HttpRequestMessage, log: TraceWriter) =
             log.Error(sprintf "Error: %s" msg)
             return req.CreateErrorResponse(HttpStatusCode.BadRequest, msg)
     with
+    | ProcessingExn(msg) ->
+        log.Error(sprintf "Processing error: %s" msg)
+        return req.CreateErrorResponse(HttpStatusCode.BadRequest, msg)
     | exn ->
         log.Error("Unknown error", exn)
         return req.CreateErrorResponse(HttpStatusCode.InternalServerError, "Unknown error")

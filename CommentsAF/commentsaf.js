@@ -16,7 +16,7 @@ function LoadCommentSubmission() {
     t += "<legend>Leave a comment</legend>";
     t += "Name<br>";
     t += "<input type='text' id='caf-submit-name'><br>";
-    t += "Comment<br>";
+    t += "Comment (markdown supported)<br>";
     t += "<textarea id='caf-submit-comment' cols='80' rows='10' /><br><br>";
     t += "<input type='submit' id='caf-submit-postcomment' value='Post comment'>";
     t += "</fieldset>";
@@ -76,8 +76,14 @@ function AddComment(postId, name, comment) {
             $("#caf-submit-comment").prop("disabled", false);
             $("#caf-submit-postcomment").prop("disabled", false);
         },
-        error: function () {
-            $("#caf-commentlist").append("Error adding comment");
+        error: function (err) {
+            var data = $.parseJSON(err.responseText);
+            if (data.Message) {
+                $("#caf-commentlist").append("<div class='caf-submit-error'>Error adding comment: " + data.Message + "</div>");
+            } else {
+                $("#caf-commentlist").append("<div class='caf-submit-error'>Error adding comment</div>");
+            }
+
             $("#caf-submit-name").prop("disabled", false);
             $("#caf-submit-comment").prop("disabled", false);
             $("#caf-submit-postcomment").prop("disabled", false);
