@@ -18,7 +18,7 @@ function CaptchaCallback(token) {
 }
 
 function LoadCommentSubmission() {
-    var t = "<form>";
+    var t = "<form id='caf-submit-form'>";
     t += "<fieldset>";
     t += "<legend>Leave a comment</legend>";
     t += "Name<br>";
