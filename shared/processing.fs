@@ -85,5 +85,16 @@ module Processing =
 
             return { PendingComment.postid = userComment.postid
                      name = finalName
-                     comment = htmlComment }
+                     commentHtml = htmlComment
+                     commentRaw = userComment.comment
+                     ipAddress = (defaultArg (getRemoteIp req) "")
+                     createdAt = DateTimeOffset.UtcNow }
         }
+
+    let adminCommentToPending (log: TraceWriter) (req : HttpRequestMessage) settings (adminComment : AdminComment) : PendingComment =
+        { PendingComment.postid = adminComment.postid
+          name = adminComment.name
+          commentHtml = adminComment.commentHtml
+          commentRaw = ""
+          ipAddress = adminComment.ipAddress
+          createdAt = adminComment.createdAt }

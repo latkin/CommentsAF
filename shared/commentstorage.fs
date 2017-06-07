@@ -4,8 +4,8 @@ open System
 open Microsoft.WindowsAzure.Storage
 open Microsoft.WindowsAzure.Storage.Table
 
-/// final form of a comment, as read out of table storage
-type Comment =
+/// form of comment that is returned to client webpage
+type WebComment =
     { time : DateTimeOffset
       name : string
       comment : string }
@@ -21,7 +21,17 @@ type UserComment =
 type PendingComment = 
     { postid: string
       name : string
-      comment : string }
+      commentHtml : string
+      commentRaw : string 
+      createdAt : DateTimeOffset 
+      ipAddress : string }
+
+type AdminComment = 
+    { postid: string
+      name : string
+      commentHtml : string
+      createdAt : DateTimeOffset 
+      ipAddress : string }
 
 type Settings =
     { StorageConnectionString : string
@@ -40,7 +50,10 @@ module CommentStorage =
     type CommentRow() =
         inherit TableEntity()
         member val Name = "" with get,set
-        member val Comment = "" with get,set
+        member val CommentHtml = "" with get,set
+        member val CommentRaw = "" with get,set
+        member val IpAddress = "" with get,set
+        member val CreatedAt = DateTimeOffset.UtcNow with get,set
 
     type CommentStorage(settings) =
         let table = 
@@ -49,9 +62,9 @@ module CommentStorage =
                     .GetTableReference(settings.TableName)
 
         let commentFromRow (row: CommentRow) =
-            { time = row.Timestamp
+            { time = row.CreatedAt
               name = row.Name
-              comment = row.Comment }
+              comment = row.CommentHtml }
 
         member __.GetCommentsForPost(postId) =
             let postKey = sprintf "post-%s" postId
@@ -67,6 +80,10 @@ module CommentStorage =
             let commentRow = CommentRow(PartitionKey = (sprintf "post-%s" comment.postid),
                                         RowKey = Guid.NewGuid().ToString(),
                                         Name = comment.name,
-                                        Comment = comment.comment)
+                                        CommentHtml = comment.commentHtml,
+                                        CommentRaw = comment.commentRaw,
+                                        IpAddress = comment.ipAddress,
+                                        CreatedAt = comment.createdAt)
+
             let result = table.Execute(TableOperation.Insert(commentRow))
             (result.Result :?> CommentRow) |> commentFromRow

@@ -21,24 +21,13 @@ open Newtonsoft.Json
 module Option =
     let getOrElse x = function None -> x | Some(v) -> v
 
-let (|GetComments|AddComment|Error|) (req: HttpRequestMessage) =
-    if req.Method = HttpMethod.Get then
-        req.GetQueryNameValuePairs()
-        |> Seq.tryFind (fun q -> q.Key = "postid")
-        |> Option.map (fun kvp -> GetComments(kvp.Value))
-        |> Option.getOrElse (Error("postid parameter required"))
-    elif req.Method = HttpMethod.Post then
-        AddComment(async {
+let (|AddComments|Error|) (req: HttpRequestMessage) =
+    if req.Method = HttpMethod.Post then
+        AddComments(async {
             let! content = req.Content.ReadAsStringAsync() |> Async.AwaitTask
             try
-                let newComment = JsonConvert.DeserializeObject<UserComment>(content)
-                if String.IsNullOrWhiteSpace(newComment.comment) ||
-                   String.IsNullOrWhiteSpace(newComment.name) ||
-                   String.IsNullOrWhiteSpace(newComment.postid) ||
-                   String.IsNullOrWhiteSpace(newComment.captcha) then
-                    return None
-                else
-                    return Some(newComment)
+                let newComment = JsonConvert.DeserializeObject<AdminComment[]>(content)
+                return Some(newComment)
             with
             | :? JsonReaderException -> return None
         })
@@ -48,33 +37,24 @@ let Run(req: HttpRequestMessage, log: TraceWriter) =
     async {
     try
         match req with
-        | GetComments(postId) ->
-            log.Info(sprintf "Request to get comments for post %s" postId)
-
-            let storage = CommentStorage(Settings.load())
-            let comments = storage.GetCommentsForPost(postId)
-
-            log.Info(sprintf "Loaded %d comments for post %s" comments.Length postId)
-
-            let resp = req.CreateResponse(HttpStatusCode.OK)
-            resp.Content <- new StringContent(JsonConvert.SerializeObject(comments))
-            return resp
-        | AddComment(newCommentOpt) ->
-            let! newCommentOpt = newCommentOpt
-            match newCommentOpt with
-            | Some(newComment) ->
-                log.Info(sprintf "Request to add comment for post %s" newComment.postid)
+        | AddComments(newCommentsOpt) ->
+            let! newCommentsOpt = newCommentsOpt
+            match newCommentsOpt with
+            | Some(newComments) ->
+                log.Info(sprintf "Admin request to add %d comments" newComments.Length)
                 let settings = Settings.load()
-                let! tmp = newComment |> Processing.userCommentToPending log req settings
-
                 let storage = CommentStorage(settings)
-                let finalComment = tmp |> storage.AddCommentForPost
+                newComments
+                |> Array.iter (fun newComment ->
+                    newComment
+                    |> Processing.adminCommentToPending log req settings
+                    |> storage.AddCommentForPost
+                    |> ignore
 
-                log.Info(sprintf "Successfully added new comment to post %s" newComment.postid)
+                    log.Info(sprintf "Successfully added new comment to post %s" newComment.postid)
+                )
 
-                let resp = req.CreateResponse(HttpStatusCode.OK)
-                resp.Content <- new StringContent(JsonConvert.SerializeObject(finalComment))
-                return resp
+                return req.CreateResponse(HttpStatusCode.OK)
             | None ->
                 log.Error(sprintf "Request to add malformed comment")
                 return req.CreateErrorResponse(HttpStatusCode.BadRequest, "malformed comment")
