@@ -5,14 +5,14 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>9cff06a0-f6cd-498f-883d-ed0a80929c6d</ProjectGuid>
+    <ProjectGuid>1781ddbe-44d7-4d35-aa47-db934aaf5a3e</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>CommentsAF</RootNamespace>
-    <AssemblyName>CommentsAF</AssemblyName>
+    <RootNamespace>CommentsAFAdmin</RootNamespace>
+    <AssemblyName>CommentsAFAdmin</AssemblyName>
     <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <TargetFSharpCoreVersion>4.4.1.0</TargetFSharpCoreVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <Name>CommentsAF</Name>
+    <Name>CommentsAFAdmin</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -58,8 +58,6 @@
     </Compile>
     <Compile Include="run.fs" />
     <Content Include="packages.config" />
-    <None Include="commentsaf.html" />
-    <Content Include="commentsaf.js" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="AngleSharp">
