@@ -25,11 +25,7 @@ let (|AddComments|Error|) (req: HttpRequestMessage) =
     if req.Method = HttpMethod.Post then
         AddComments(async {
             let! content = req.Content.ReadAsStringAsync() |> Async.AwaitTask
-            try
-                let newComment = JsonConvert.DeserializeObject<AdminComment[]>(content)
-                return Some(newComment)
-            with
-            | :? JsonReaderException -> return None
+            return JsonConvert.DeserializeObject<AdminComment[]>(content)
         })
     else Error(sprintf "unsupported method %s" req.Method.Method)
 
@@ -37,27 +33,22 @@ let Run(req: HttpRequestMessage, log: TraceWriter) =
     async {
     try
         match req with
-        | AddComments(newCommentsOpt) ->
-            let! newCommentsOpt = newCommentsOpt
-            match newCommentsOpt with
-            | Some(newComments) ->
-                log.Info(sprintf "Admin request to add %d comments" newComments.Length)
-                let settings = Settings.load()
-                let storage = CommentStorage(settings)
-                newComments
-                |> Array.iter (fun newComment ->
-                    newComment
-                    |> Processing.adminCommentToPending log req settings
-                    |> storage.AddCommentForPost
-                    |> ignore
+        | AddComments(newComments) ->
+            let! newComments = newComments
+            log.Info(sprintf "Admin request to add %d comments" newComments.Length)
+            let settings = Settings.load()
+            let storage = CommentStorage(settings)
+            newComments
+            |> Array.iter (fun newComment ->
+                newComment
+                |> Processing.adminCommentToPending log req settings
+                |> storage.AddCommentForPost
+                |> ignore
 
-                    log.Info(sprintf "Successfully added new comment to post %s" newComment.postid)
-                )
+                log.Info(sprintf "Successfully added new comment to post %s" newComment.postid)
+            )
 
-                return req.CreateResponse(HttpStatusCode.OK)
-            | None ->
-                log.Error(sprintf "Request to add malformed comment")
-                return req.CreateErrorResponse(HttpStatusCode.BadRequest, "malformed comment")
+            return req.CreateResponse(HttpStatusCode.OK)
         | Error(msg) ->
             log.Error(sprintf "Error: %s" msg)
             return req.CreateErrorResponse(HttpStatusCode.BadRequest, msg)

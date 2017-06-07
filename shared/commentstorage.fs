@@ -30,7 +30,7 @@ type AdminComment =
     { postid: string
       name : string
       commentHtml : string
-      createdAt : DateTimeOffset 
+      createdAt : DateTimeOffset
       ipAddress : string }
 
 type Settings =
@@ -55,6 +55,11 @@ module CommentStorage =
         member val IpAddress = "" with get,set
         member val CreatedAt = DateTimeOffset.UtcNow with get,set
 
+    let private genPartitionKey (postId : string) = 
+        let postId =
+            postId.Replace('/', '.').Replace('\\','.').Replace('#','.').Replace('?', '.')
+        sprintf "post-%s" postId
+
     type CommentStorage(settings) =
         let table = 
                 CloudStorageAccount.Parse(settings.StorageConnectionString)
@@ -67,7 +72,7 @@ module CommentStorage =
               comment = row.CommentHtml }
 
         member __.GetCommentsForPost(postId) =
-            let postKey = sprintf "post-%s" postId
+            let postKey = genPartitionKey postId
             let q =
                 TableQuery<CommentRow>()
                     .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, postKey))
@@ -77,7 +82,7 @@ module CommentStorage =
             |> Array.sortBy (fun c -> c.time)
 
         member __.AddCommentForPost(comment: PendingComment) =
-            let commentRow = CommentRow(PartitionKey = (sprintf "post-%s" comment.postid),
+            let commentRow = CommentRow(PartitionKey = (genPartitionKey comment.postid),
                                         RowKey = Guid.NewGuid().ToString(),
                                         Name = comment.name,
                                         CommentHtml = comment.commentHtml,
